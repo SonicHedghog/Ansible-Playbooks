@@ -15,7 +15,7 @@ on:
       - ".github/workflows/ansible-ci.yml"
 
 jobs:
-  syntax-check:
+  run-playbooks:
     runs-on: ubuntu-latest
 
     steps:
@@ -40,7 +40,10 @@ jobs:
           localhost ansible_connection=local
           EOF
 
-      - name: Validate playbook syntax
+      - name: Run ping playbook
         run: |
-          ansible-playbook -i ci-inventory.ini --syntax-check playbooks/ping.yml
-          ansible-playbook -i ci-inventory.ini --syntax-check playbooks/install-nginx.yml
+          ansible-playbook -i ci-inventory.ini playbooks/ping.yml
+
+      - name: Run nginx install playbook
+        run: |
+          ansible-playbook -i ci-inventory.ini playbooks/install-nginx.yml --become
