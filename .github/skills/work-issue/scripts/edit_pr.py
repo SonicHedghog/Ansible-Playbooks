@@ -1,29 +1,9 @@
 import argparse
 import json
-import sys
-from typing import Any, Dict
 
 from git_providers import github, gitlab
 from utils.env_loader import load_env
-
-
-def _read_issue_json(input_value: str) -> Dict[str, Any]:
-    if input_value == "-":
-        raw = sys.stdin.read()
-        if not raw.strip():
-            raise ValueError("No JSON was provided on stdin")
-        return json.loads(raw)
-
-    with open(input_value, "rb") as file:
-        payload = file.read()
-
-    for encoding in ("utf-8", "utf-8-sig", "utf-16"):
-        try:
-            return json.loads(payload.decode(encoding))
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            continue
-
-    raise ValueError("Unable to parse issue JSON from file")
+from utils.issue_json import read_issue_json
 
 
 def _normalize_cli_text(value: str | None) -> str | None:
@@ -48,7 +28,7 @@ def main() -> None:
     if normalized_title is None and normalized_body is None:
         raise ValueError("Provide at least one of --title or --body")
 
-    issue_data = _read_issue_json(args.issue_json)
+    issue_data = read_issue_json(args.issue_json)
     provider = issue_data.get("provider")
     if provider not in {"github", "gitlab"}:
         raise ValueError("Issue JSON must include provider='github' or provider='gitlab'")
