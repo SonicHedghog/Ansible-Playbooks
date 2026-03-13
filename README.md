@@ -45,5 +45,4 @@ ansible-playbook -i inventory.ini playbooks/install-nginx.yml
 
 ## CI
 
-- A GitHub Actions workflow runs the Ansible playbooks on pull requests and pushes to `main`.
-
+- A GitHub Actions workflow lints Ansible playbooks with `ansible-lint` and runs them on pull requests and pushes to `main`.
