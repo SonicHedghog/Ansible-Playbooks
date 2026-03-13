@@ -1,53 +1,75 @@
 import argparse
 import json
-import sys
-from typing import Any, Dict
+import subprocess
 
 from git_providers import github, gitlab
 from utils.env_loader import load_env
-from utils.git_ops import branch_has_commits_ahead, create_local_branch, detect_git_user, push_branch
+from utils.issue_json import read_issue_json
 
 
-def _read_issue_json(input_value: str) -> Dict[str, Any]:
-    if input_value == "-":
-        raw = sys.stdin.read()
-        if not raw.strip():
-            raise ValueError("No JSON was provided on stdin")
-        return json.loads(raw)
+def _run_git(args: list[str]) -> str:
+    result = subprocess.run(
+        ["git", *args],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        message = result.stderr.strip() or result.stdout.strip() or "Git command failed"
+        raise RuntimeError(message)
+    return result.stdout.strip()
 
-    with open(input_value, "rb") as file:
-        payload = file.read()
 
-    for encoding in ("utf-8", "utf-8-sig", "utf-16"):
-        try:
-            return json.loads(payload.decode(encoding))
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            continue
+def _default_base_ref() -> str:
+    for args in (
+        ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"],
+        ["rev-parse", "--abbrev-ref", "origin/HEAD"],
+    ):
+        result = subprocess.run(
+            ["git", *args],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            value = result.stdout.strip()
+            if value:
+                return value
+    return "origin/main"
 
-    raise ValueError("Unable to parse issue JSON from file")
+
+def _branch_has_commits_ahead(branch_name: str) -> bool:
+    base_ref = _default_base_ref()
+    count = _run_git(["rev-list", "--count", f"{base_ref}..{branch_name}"])
+    return int(count) > 0
+
+
+def _detect_git_user() -> str:
+    user = _run_git(["config", "user.name"])
+    if not user:
+        raise RuntimeError("Git user.name is not configured")
+    return user
 
 
 def main() -> None:
     load_env()
 
-    parser = argparse.ArgumentParser(description="Create branch and push it. Create PR/MR only when branch has commits.")
+    parser = argparse.ArgumentParser(description="Ensure PR/MR exists for a branch when commits are ahead of default.")
     parser.add_argument("--issue-json", required=True, help="Path to issue JSON or '-' to read from stdin")
-    parser.add_argument("--branch-name", required=True, help="Branch name to create and push")
+    parser.add_argument("--branch-name", required=True, help="Branch name to evaluate for PR/MR creation")
     args = parser.parse_args()
 
-    issue_data = _read_issue_json(args.issue_json)
+    issue_data = read_issue_json(args.issue_json)
     provider = issue_data.get("provider")
     if provider not in {"github", "gitlab"}:
         raise ValueError("Issue JSON must include provider='github' or provider='gitlab'")
 
-    create_local_branch(args.branch_name)
-    push_branch(args.branch_name)
-    ready_for_pr = branch_has_commits_ahead(args.branch_name)
+    ready_for_pr = _branch_has_commits_ahead(args.branch_name)
     pr_url = None
     pr_created = False
 
     if ready_for_pr:
-        git_user = detect_git_user()
+        git_user = _detect_git_user()
         if provider == "github":
             pr_url, pr_created = github.ensure_pr_and_assign(issue_data, args.branch_name, git_user)
         else:
