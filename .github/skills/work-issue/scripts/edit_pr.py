@@ -26,6 +26,12 @@ def _read_issue_json(input_value: str) -> Dict[str, Any]:
     raise ValueError("Unable to parse issue JSON from file")
 
 
+def _normalize_cli_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    return value.replace("\\r\\n", "\n").replace("\\n", "\n")
+
+
 def main() -> None:
     load_env()
 
@@ -36,7 +42,10 @@ def main() -> None:
     parser.add_argument("--body", help="New PR body (GitHub) or MR description (GitLab)")
     args = parser.parse_args()
 
-    if args.title is None and args.body is None:
+    normalized_title = _normalize_cli_text(args.title)
+    normalized_body = _normalize_cli_text(args.body)
+
+    if normalized_title is None and normalized_body is None:
         raise ValueError("Provide at least one of --title or --body")
 
     issue_data = _read_issue_json(args.issue_json)
@@ -48,15 +57,15 @@ def main() -> None:
         pr_url = github.update_open_pr_for_branch(
             issue_data["repo"],
             args.branch_name,
-            title=args.title,
-            body=args.body,
+            title=normalized_title,
+            body=normalized_body,
         )
     else:
         pr_url = gitlab.update_open_mr_for_branch(
             issue_data["repo"],
             args.branch_name,
-            title=args.title,
-            description=args.body,
+            title=normalized_title,
+            description=normalized_body,
         )
 
     result = {
