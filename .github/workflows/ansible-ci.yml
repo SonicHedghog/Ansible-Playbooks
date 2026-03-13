@@ -1,0 +1,49 @@
+name: Ansible CI
+
+on:
+  pull_request:
+    paths:
+      - "playbooks/**/*.yml"
+      - "playbooks/**/*.yaml"
+      - ".github/workflows/ansible-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "playbooks/**/*.yml"
+      - "playbooks/**/*.yaml"
+      - ".github/workflows/ansible-ci.yml"
+
+jobs:
+  run-playbooks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Ansible
+        run: pip install ansible-core
+
+      - name: Create test inventory
+        run: |
+          cat <<'EOF' > ci-inventory.ini
+          [all]
+          localhost ansible_connection=local
+
+          [web]
+          localhost ansible_connection=local
+          EOF
+
+      - name: Run ping playbook
+        run: |
+          ansible-playbook -i ci-inventory.ini playbooks/ping.yml
+
+      - name: Run nginx install playbook
+        run: |
+          ansible-playbook -i ci-inventory.ini playbooks/install-nginx.yml --become

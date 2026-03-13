@@ -1,5 +1,7 @@
 # Ansible-Playbooks
 
+![Ansible CI](https://github.com/SonicHedghog/Ansible-Playbooks/actions/workflows/ansible-ci.yml/badge.svg)
+
 This repository contains example Ansible playbooks you can use as a starting point.
 
 ## Prerequisites
@@ -40,4 +42,8 @@ ansible-playbook -i inventory.ini playbooks/install-nginx.yml
 
 - These playbooks are examples; adjust groups, users, and package names for your environment.
 - For privilege escalation, ensure your user can use sudo and include `become: true` where needed.
+
+## CI
+
+- A GitHub Actions workflow runs the Ansible playbooks on pull requests and pushes to `main`.
 
