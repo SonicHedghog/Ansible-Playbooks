@@ -41,3 +41,7 @@ ansible-playbook -i inventory.ini playbooks/install-nginx.yml
 - These playbooks are examples; adjust groups, users, and package names for your environment.
 - For privilege escalation, ensure your user can use sudo and include `become: true` where needed.
 
+## CI
+
+- A GitHub Actions workflow runs Ansible syntax checks for playbooks on pull requests and pushes to `main`.
+
