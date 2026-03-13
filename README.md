@@ -46,3 +46,7 @@ ansible-playbook -i inventory.ini playbooks/install-nginx.yml
 ## CI
 
 - A GitHub Actions workflow lints Ansible playbooks with `ansible-lint` and runs them on pull requests and pushes to `main`.
+
+## License
+
+This repository is licensed under the MIT License. See `LICENSE` for details.
