@@ -1,0 +1,5 @@
+.*
+!.github/
+.github/skills/work-issue/*.json
+work-issue/scripts/
+*.pyc
