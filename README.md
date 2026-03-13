@@ -1,5 +1,7 @@
 # Ansible-Playbooks
 
+![Ansible CI](https://github.com/SonicHedghog/Ansible-Playbooks/actions/workflows/ansible-ci.yml/badge.svg)
+
 This repository contains example Ansible playbooks you can use as a starting point.
 
 ## Prerequisites
