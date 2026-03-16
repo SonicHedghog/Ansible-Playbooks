@@ -22,7 +22,7 @@ def normalize_issue_data(provider: str, issue_data: Dict[str, Any]) -> Dict[str,
     if issue_number is None:
         raise ValueError("Issue metadata must include issue_number")
 
-    return {
+    normalized = {
         "provider": provider,
         "repo": issue_data.get("repo"),
         "issue_number": int(issue_number),
@@ -30,3 +30,8 @@ def normalize_issue_data(provider: str, issue_data: Dict[str, Any]) -> Dict[str,
         "description": issue_data.get("description") or "",
         "labels": _normalize_labels(issue_data.get("labels")),
     }
+
+    if provider == "gitlab" and issue_data.get("base_url"):
+        normalized["base_url"] = str(issue_data.get("base_url"))
+
+    return normalized
