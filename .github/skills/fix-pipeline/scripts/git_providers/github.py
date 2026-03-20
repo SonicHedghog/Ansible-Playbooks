@@ -71,7 +71,17 @@ def fetch_pipeline_metadata(pipeline_url: str) -> Dict[str, Any]:
     }
 
 
-def list_failed_jobs(repo_full_name: str, run_id: int, *, max_jobs: int = 25) -> List[Dict[str, Any]]:
+def _extract_check_run_id(job: Dict[str, Any]) -> Optional[int]:
+    check_run_url = str(job.get("check_run_url") or "")
+    if not check_run_url:
+        return None
+    match = re.search(r"/check-runs/(\d+)$", check_run_url)
+    if not match:
+        return None
+    return int(match.group(1))
+
+
+def list_run_jobs(repo_full_name: str, run_id: int, *, max_jobs: int = 25) -> List[Dict[str, Any]]:
     owner, repo = repo_full_name.split("/", 1)
     jobs_data = _request_json(
         "GET",
@@ -79,21 +89,24 @@ def list_failed_jobs(repo_full_name: str, run_id: int, *, max_jobs: int = 25) ->
         params={"per_page": max_jobs},
     )
     jobs = jobs_data.get("jobs", []) if isinstance(jobs_data, dict) else []
-    failures: List[Dict[str, Any]] = []
+    normalized_jobs: List[Dict[str, Any]] = []
     for job in jobs:
         conclusion = str(job.get("conclusion") or "")
         status = str(job.get("status") or "")
-        if conclusion in {"failure", "timed_out", "cancelled"} or status == "failure":
-            failures.append(
-                {
-                    "id": int(job.get("id")),
-                    "name": str(job.get("name") or ""),
-                    "stage": str(job.get("name") or ""),
-                    "status": conclusion or status,
-                    "web_url": str(job.get("html_url") or ""),
-                }
-            )
-    return failures
+        check_run_id = _extract_check_run_id(job)
+        normalized_jobs.append(
+            {
+                "id": int(job.get("id")),
+                "name": str(job.get("name") or ""),
+                "stage": str(job.get("name") or ""),
+                "status": conclusion or status,
+                "web_url": str(job.get("html_url") or ""),
+                "check_run_id": check_run_id,
+                "conclusion": conclusion,
+                "raw_status": status,
+            }
+        )
+    return normalized_jobs
 
 
 def fetch_job_log(repo_full_name: str, job_id: int) -> str:
@@ -104,3 +117,32 @@ def fetch_job_log(repo_full_name: str, job_id: int) -> str:
         allow_redirects=True,
     )
     return response.text
+
+
+def fetch_check_run_annotations(
+    repo_full_name: str,
+    check_run_id: int,
+    *,
+    max_annotations: int = 100,
+) -> List[Dict[str, Any]]:
+    owner, repo = repo_full_name.split("/", 1)
+    annotations: List[Dict[str, Any]] = []
+    page = 1
+    per_page = 50
+
+    while len(annotations) < max_annotations:
+        response = _request_json(
+            "GET",
+            f"https://api.github.com/repos/{owner}/{repo}/check-runs/{check_run_id}/annotations",
+            params={"per_page": per_page, "page": page},
+        )
+
+        if not isinstance(response, list) or not response:
+            break
+
+        annotations.extend(response)
+        if len(response) < per_page:
+            break
+        page += 1
+
+    return annotations[:max_annotations]

@@ -34,6 +34,10 @@
   - conclusion
   - failed_jobs[]:
     - id, name, stage, status, web_url, log_excerpt, error_signature
+    - check_run_id (GitHub only)
+    - annotation_summary (GitHub only: total, warning_count, failure_count, notice_count)
+    - annotations[] (GitHub only: annotation_level, path, start_line, end_line, title, message)
+    - Note: for GitHub, this list may include jobs with warning/notice annotations even when the job did not fail.
   - error_signature_groups[]:
     - error_signature, count, jobs[]
 

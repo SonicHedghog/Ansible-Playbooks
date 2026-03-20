@@ -55,8 +55,10 @@ def _to_markdown(normalized: dict) -> str:
             lines.append(f"- occurrences: {group.get('count', 0)}")
             lines.append("- jobs:")
             for job in group.get("jobs", []):
+                annotation_summary = job.get("annotation_summary") or {}
+                warning_count = int(annotation_summary.get("warning_count", 0))
                 lines.append(
-                    f"  - {job.get('name', '')} | stage={job.get('stage', '')} | status={job.get('status', '')}"
+                    f"  - {job.get('name', '')} | stage={job.get('stage', '')} | status={job.get('status', '')} | warnings={warning_count}"
                 )
             lines.append("")
 
@@ -78,18 +80,82 @@ def main() -> None:
 
     provider = detect_provider(args.url)
 
+    def _summarize_annotations(raw_annotations: list) -> dict:
+        summary = {
+            "total": len(raw_annotations),
+            "warning_count": 0,
+            "failure_count": 0,
+            "notice_count": 0,
+        }
+        for annotation in raw_annotations:
+            level = str(annotation.get("annotation_level") or "").lower()
+            if level == "warning":
+                summary["warning_count"] += 1
+            elif level in {"failure", "error"}:
+                summary["failure_count"] += 1
+            elif level == "notice":
+                summary["notice_count"] += 1
+        return summary
+
+    def _annotation_signature(raw_annotations: list) -> str:
+        for level in ("failure", "warning", "notice"):
+            for annotation in raw_annotations:
+                annotation_level = str(annotation.get("annotation_level") or "").lower()
+                if annotation_level != level:
+                    continue
+                message = str(annotation.get("message") or "").strip()
+                path_value = str(annotation.get("path") or "").strip()
+                start_line = annotation.get("start_line")
+                if message and path_value and isinstance(start_line, int):
+                    return f"{path_value}:{start_line}: {message}"[:220]
+                if message:
+                    return message[:220]
+        return ""
+
     if provider == "github":
         if not os.getenv("GITHUB_TOKEN"):
             raise RuntimeError("Missing required environment variable: GITHUB_TOKEN")
         metadata = github.fetch_pipeline_metadata(args.url)
-        failed_jobs = github.list_failed_jobs(metadata["repo"], metadata["pipeline_id"], max_jobs=args.max_jobs)
+        run_jobs = github.list_run_jobs(metadata["repo"], metadata["pipeline_id"], max_jobs=args.max_jobs)
 
         enriched_jobs = []
-        for job in failed_jobs:
+        for job in run_jobs:
             log_text = github.fetch_job_log(metadata["repo"], int(job["id"]))
+            check_run_id = job.get("check_run_id")
+            raw_annotations = []
+            if isinstance(check_run_id, int):
+                raw_annotations = github.fetch_check_run_annotations(metadata["repo"], check_run_id)
+
+            normalized_annotations = []
+            for annotation in raw_annotations:
+                normalized_annotations.append(
+                    {
+                        "annotation_level": annotation.get("annotation_level"),
+                        "path": annotation.get("path"),
+                        "start_line": annotation.get("start_line"),
+                        "end_line": annotation.get("end_line"),
+                        "title": annotation.get("title"),
+                        "message": annotation.get("message"),
+                    }
+                )
+
             job["log_excerpt"] = trim_log_excerpt(log_text)
-            job["error_signature"] = derive_error_signature(log_text)
-            enriched_jobs.append(job)
+            signature_from_logs = derive_error_signature(log_text)
+            signature_from_annotations = _annotation_signature(raw_annotations)
+            job["annotations"] = normalized_annotations
+            job["annotation_summary"] = _summarize_annotations(raw_annotations)
+            job["error_signature"] = signature_from_annotations or signature_from_logs
+
+            conclusion = str(job.get("conclusion") or "").lower()
+            raw_status = str(job.get("raw_status") or "").lower()
+            has_failure = conclusion in {"failure", "timed_out", "cancelled"} or raw_status == "failure"
+            annotation_total = int(job["annotation_summary"].get("total", 0))
+            has_annotations = annotation_total > 0
+
+            if has_failure or has_annotations:
+                if not has_failure and has_annotations:
+                    job["status"] = "warning"
+                enriched_jobs.append(job)
     else:
         if not os.getenv("GITLAB_TOKEN"):
             raise RuntimeError("Missing required environment variable: GITLAB_TOKEN")
