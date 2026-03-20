@@ -25,11 +25,12 @@ This skill must:
 6. Prefer command examples that use available CLI tools directly.
 7. Add scripts/templates/config only if the user explicitly wants them or complexity justifies them.
 8. Ask whether the new skill should be local or global.
-9. Resolve destination path (agent should know the standard paths for local vs global skills).
-10. Generate files with concrete, user-approved behavior.
-11. Create or update a `references` section/file documenting every CLI tool and script used by the generated skill.
-12. Place any non-doc/script artifacts in `assets/`.
-13. Summarize created files and key decisions.
+9. Resolve destination path from the active assistant environment, then treat that directory as the new skill root.
+10. In generated instructions and examples, use skill-root-relative paths (for example `assets/`, `references/`, `scripts/`) rather than assistant-specific absolute or parent paths.
+11. Generate files with concrete, user-approved behavior.
+12. Create or update a `references` section/file documenting every CLI tool and script used by the generated skill.
+13. Place any non-doc/script artifacts in `assets/`.
+14. Summarize created files and key decisions.
 
 ## Discovery questions (required topics)
 Ask questions until each topic is clear:
@@ -103,7 +104,11 @@ Placement rules:
 Always ask:
 "Should this new skill be local to this repository or global to your machine?"
 
-Then store in the matching location (the agent should know the standard paths for local vs global skills).
+Then store in the matching location as resolved by the active assistant environment.
+
+For all generated docs, instructions, and references:
+- Use paths relative to the created skill root.
+- Do not require a specific parent directory name.
 
 If the target directory does not exist, create it.
 
