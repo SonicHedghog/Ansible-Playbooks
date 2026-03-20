@@ -46,6 +46,7 @@ def main() -> None:
             args.branch_name,
             title=normalized_title,
             description=normalized_body,
+            base_url=str(issue_data.get("base_url") or "https://gitlab.com"),
         )
 
     result = {

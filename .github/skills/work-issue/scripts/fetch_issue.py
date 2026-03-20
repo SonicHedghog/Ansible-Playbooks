@@ -8,10 +8,13 @@ from utils.normalize import normalize_issue_data
 
 
 def detect_provider(issue_url: str) -> str:
-    host = urlparse(issue_url).netloc.lower()
+    parsed = urlparse(issue_url)
+    host = parsed.netloc.lower()
+    path = parsed.path.lower()
     if "github.com" in host:
         return "github"
-    if "gitlab.com" in host:
+    # Support gitlab.com and self-hosted GitLab issue URLs like /group/project/-/issues/123.
+    if "gitlab" in host or "/-/issues/" in path:
         return "gitlab"
     raise ValueError("Unsupported issue provider in URL")
 
