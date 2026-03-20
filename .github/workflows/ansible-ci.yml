@@ -27,8 +27,12 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Ansible
-        run: pip install ansible-core
+      - name: Install Ansible and ansible-lint
+        run: pip install ansible-core ansible-lint
+
+      - name: Lint playbooks
+        run: |
+          ansible-lint playbooks/
 
       - name: Create test inventory
         run: |
