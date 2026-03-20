@@ -56,7 +56,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Intentional failure for fix-pipeline testing
+      - name: Sample job for fix-pipeline testing
         run: |
-          echo "PIPELINE_TEST_FAILURE: intentional failure job for /fix-pipeline validation"
-          exit 1
+          echo "PIPELINE_TEST_SUCCESS: sample job now passes after /fix-pipeline fix"

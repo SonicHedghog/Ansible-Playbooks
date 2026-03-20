@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+from typing import Optional
 from urllib.parse import urlparse
 
 from git_providers import github, gitlab
@@ -22,7 +23,7 @@ def detect_provider(pipeline_url: str) -> str:
     raise ValueError("Unsupported pipeline provider in URL")
 
 
-def _write_file(path_value: str | None, content: str) -> None:
+def _write_file(path_value: Optional[str], content: str) -> None:
     if not path_value:
         return
     path = Path(path_value)
