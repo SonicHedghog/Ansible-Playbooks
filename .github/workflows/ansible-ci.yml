@@ -51,3 +51,12 @@ jobs:
       - name: Run nginx install playbook
         run: |
           ansible-playbook -i ci-inventory.ini playbooks/install-nginx.yml --become
+
+  sample-failing-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Intentional failure for fix-pipeline testing
+        run: |
+          echo "PIPELINE_TEST_FAILURE: intentional failure job for /fix-pipeline validation"
+          exit 1
