@@ -1,0 +1,52 @@
+{
+  "provider": "github",
+  "repo": "acme/widgets",
+  "pipeline_id": 1234567890,
+  "pipeline_url": "https://github.com/acme/widgets/actions/runs/1234567890",
+  "branch": "feature/fix-lint",
+  "sha": "5b91f925f2f8b2ab8f2de80b995a6dd4cb55de01",
+  "status": "completed",
+  "conclusion": "failure",
+  "failed_jobs": [
+    {
+      "id": 99887766,
+      "name": "lint",
+      "stage": "lint",
+      "status": "failure",
+      "web_url": "https://github.com/acme/widgets/actions/runs/1234567890/job/99887766",
+      "log_excerpt": "src/api/client.py:42:1: F401 'json' imported but unused",
+      "error_signature": "src/api/client.py:42:1: F401 'json' imported but unused"
+    },
+    {
+      "id": 99887767,
+      "name": "lint-macos",
+      "stage": "lint-macos",
+      "status": "failure",
+      "web_url": "https://github.com/acme/widgets/actions/runs/1234567890/job/99887767",
+      "log_excerpt": "src/api/client.py:42:1: F401 'json' imported but unused",
+      "error_signature": "src/api/client.py:42:1: F401 'json' imported but unused"
+    }
+  ],
+  "error_signature_groups": [
+    {
+      "error_signature": "src/api/client.py:42:1: F401 'json' imported but unused",
+      "count": 2,
+      "jobs": [
+        {
+          "id": 99887766,
+          "name": "lint",
+          "stage": "lint",
+          "status": "failure",
+          "web_url": "https://github.com/acme/widgets/actions/runs/1234567890/job/99887766"
+        },
+        {
+          "id": 99887767,
+          "name": "lint-macos",
+          "stage": "lint-macos",
+          "status": "failure",
+          "web_url": "https://github.com/acme/widgets/actions/runs/1234567890/job/99887767"
+        }
+      ]
+    }
+  ]
+}
