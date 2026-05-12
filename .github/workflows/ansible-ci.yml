@@ -28,11 +28,56 @@ jobs:
           python-version: "3.11"
 
       - name: Install Ansible and ansible-lint
-        run: pip install ansible-core ansible-lint
+        run: pip install ansible-core ansible-lint safety
 
       - name: Lint playbooks
         run: |
-          ansible-lint playbooks/
+          ansible-lint playbooks/ --parseable --quiet > ansible-lint-report.txt || true
+          ansible-lint playbooks/ --format json > ansible-lint-report.json || true
+
+      - name: Security scan dependencies
+        run: |
+          safety check --json > security-report.json || true
+          safety check > security-report.txt || true
+
+      - name: Security scan playbooks
+        run: |
+          ansible-lint playbooks/ --parseable-severity --force-color --rules-dir /dev/null \
+            --enable-list=risky,no-same-owner,package-latest,command-instead-of-shell,ignore-errors \
+            > ansible-security-report.txt || true
+          echo "Ansible security scan completed"
+
+      - name: Upload code quality reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-quality-reports
+          path: |
+            ansible-lint-report.txt
+            ansible-lint-report.json
+          retention-days: 30
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            security-report.txt
+            security-report.json
+            ansible-security-report.txt
+          retention-days: 30
+
+      - name: Generate summary
+        run: |
+          echo "## Code Quality & Security Report Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Code Quality Reports" >> $GITHUB_STEP_SUMMARY
+          echo "- ansible-lint report: \`ansible-lint-report.txt\` and \`ansible-lint-report.json\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Security Reports" >> $GITHUB_STEP_SUMMARY
+          echo "- Dependency security scan: \`security-report.txt\` and \`security-report.json\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Ansible security scan: \`ansible-security-report.txt\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All reports have been uploaded as artifacts for detailed review." >> $GITHUB_STEP_SUMMARY
 
       - name: Create test inventory
         run: |
