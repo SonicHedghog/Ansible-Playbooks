@@ -18,3 +18,13 @@
 
 ## Recommended next step
 Ask the user which error signature group to fix first, then scope edits to that group.
+
+## Code quality reports
+- Import 'json' is unused
+  severity: warning
+  path: src/api/client.py
+
+## Security reports
+- requests
+  severity: high
+  description: Requests library vulnerable to potential security issue
